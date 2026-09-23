@@ -19,11 +19,32 @@ OLLAMA_DIR="$APPS/ollama"
 export OLLAMA_MODELS="${OLLAMA_MODELS:-$HOME/.ollama-models}"
 
 echo "=== 1/5  Ollama (user-local, no sudo) ==="
+# Ollama ships .tar.zst now, and a shared box typically has no zstd and no way
+# to apt-get one. Python's zstandard wheel needs no admin rights, so the archive
+# is decompressed with that and handed to tar as a plain stream.
 if [ ! -x "$OLLAMA_DIR/bin/ollama" ]; then
   mkdir -p "$OLLAMA_DIR"
-  echo "downloading ollama..."
-  curl -fsSL https://ollama.com/download/ollama-linux-amd64.tgz \
-    | tar -xz -C "$OLLAMA_DIR"
+  TAG=$(curl -s https://api.github.com/repos/ollama/ollama/releases/latest \
+        | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')
+  URL="https://github.com/ollama/ollama/releases/download/$TAG/ollama-linux-amd64.tar.zst"
+  echo "downloading ollama $TAG (~1.4GB)..."
+  curl -fL --progress-bar "$URL" -o "$APPS/ollama.tar.zst"
+
+  if command -v zstd >/dev/null; then
+    zstd -dc "$APPS/ollama.tar.zst" | tar -x -C "$OLLAMA_DIR"
+  else
+    python3 -m pip install --user --quiet zstandard
+    python3 - "$APPS/ollama.tar.zst" "$OLLAMA_DIR" <<'PY'
+import subprocess, sys, zstandard
+archive, dest = sys.argv[1], sys.argv[2]
+tar = subprocess.Popen(["tar", "-x", "-C", dest], stdin=subprocess.PIPE)
+with open(archive, "rb") as fh:
+    zstandard.ZstdDecompressor().copy_stream(fh, tar.stdin)
+tar.stdin.close()
+raise SystemExit(tar.wait())
+PY
+  fi
+  rm -f "$APPS/ollama.tar.zst"
 else
   echo "already installed"
 fi
