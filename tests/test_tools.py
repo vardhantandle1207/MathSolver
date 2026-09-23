@@ -288,3 +288,50 @@ def test_option_matching_uses_evaluated_latex():
 def test_expression_parser_rejects_non_math():
     # Only maths characters reach SymPy's parser.
     assert _to_number("__import__('os')") is None
+
+
+# ---- failure classification -----------------------------------------------
+# A wrong option letter is a wrong ANSWER, not a formatting failure. Reading
+# 'A' as an algebraic symbol once filed these as "unevaluated" and overstated
+# how much of the gap was fixable plumbing.
+
+from src.analyse import classify
+
+_MCQ_OPTS = ["441", "398", "312", "409"]
+
+def _rec(**kw):
+    base = {"agent_answer": "", "answer_type": "mcq", "options": _MCQ_OPTS,
+            "stopped_reason": "final_answer",
+            "trace": [{"type": "tool_call", "name": "run_python", "observation": "9"}]}
+    base.update(kw)
+    return base
+
+def test_wrong_letter_is_wrong_maths_not_plumbing():
+    assert classify(_rec(agent_answer="A")) == "wrong_maths"
+
+def test_value_matching_an_option_is_wrong_maths():
+    assert classify(_rec(agent_answer="398")) == "wrong_maths"
+
+def test_value_matching_no_option_is_unmatched():
+    assert classify(_rec(agent_answer="9999")) == "unmatched_value"
+
+def test_symbolic_answer_is_unevaluated():
+    assert classify(_rec(agent_answer="(7/12, 4/3, 1/4)")) == "unevaluated"
+
+def test_numeric_symbolic_answer_is_unevaluated():
+    assert classify(_rec(agent_answer="nonsense here", answer_type="numeric",
+                         options=None)) == "unevaluated"
+
+def test_empty_answer_is_no_submission():
+    assert classify(_rec(agent_answer="", stopped_reason="step_limit")) == "no_submission"
+
+def test_never_used_a_tool():
+    assert classify(_rec(agent_answer="A", trace=[])) == "no_tool_use"
+
+def test_tuple_is_not_a_scalar():
+    # Reading a coordinate triple as its first number could score it correct.
+    assert _to_number("(7/12, 4/3, 1/4)") is None
+    assert _to_number("[1, 2, 3]") is None
+
+def test_parenthesised_scalar_still_parses():
+    assert _to_number("(3+4)*2") == 14.0

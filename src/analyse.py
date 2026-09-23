@@ -52,16 +52,22 @@ def classify(rec: dict) -> str:
            for t in tool_calls):
         return "tool_error"
 
-    # A value we cannot evaluate at all: symbolic or malformed output.
+    if rec.get("answer_type") == "mcq":
+        # Check for an option letter FIRST. Asking _to_number('A') parses it as
+        # an algebraic symbol and yields None, which filed perfectly good (if
+        # wrong) answers like 'A' under "unevaluated" and inflated the share of
+        # failures that looked like plumbing.
+        if _extract_mcq_letter(answer) is not None:
+            return "wrong_maths"
+        if _letter_for_value(answer, rec.get("options")) is not None:
+            return "wrong_maths"      # picked an option by value, just the wrong one
+        if _to_number(answer) is None:
+            return "unevaluated"      # neither a letter nor a number we can read
+        return "unmatched_value"      # a number matching none of the options
+
+    # Numeric question: the only formatting failure is an answer we can't evaluate.
     if _to_number(answer) is None:
         return "unevaluated"
-
-    if rec.get("answer_type") == "mcq":
-        # It produced a number, but no option letter and no option it matches.
-        if _extract_mcq_letter(answer) is None and \
-                _letter_for_value(answer, rec.get("options")) is None:
-            return "unmatched_value"
-
     return "wrong_maths"
 
 

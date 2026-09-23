@@ -132,6 +132,13 @@ def _to_number(text: str) -> float | None:
     text = re.sub(r"^\s*[a-zA-Z]\s*=\s*", "", text)
 
     compact = text.replace(" ", "")
+
+    # A tuple or list is not a scalar. Without this the prose fallback reads
+    # '(7/12, 4/3, 1/4)' as 7.0 — which could score a coordinate triple as a
+    # correct single number.
+    if re.match(r"^[\(\[\{].*,.*[\)\]\}]$", compact):
+        return None
+
     if re.fullmatch(r"-?\d+/\d+", compact):
         try:
             return float(Fraction(compact))
