@@ -1,0 +1,41 @@
+[  1/100] JEE-Main MCQ base:  X(D              ) agent:  X(398            ) gold=A
+[  2/100] JEE-Main MCQ base:  X(**Final: D**   ) agent:  X(C              ) gold=B
+[  3/100] JEE-Main numeric base:  X(B              ) agent:  X(The value of \() gold=2
+[  4/100] JEE-Main MCQ base:  X(D              ) agent:  X(C              ) gold=B
+[  5/100] JEE-Main MCQ base:OK (A              ) agent:  X(C              ) gold=A
+[  6/100] JEE-Main MCQ base:  X(D              ) agent:OK (B              ) gold=B
+[  7/100] JEE-Main numeric base:  X(3              ) agent:  X(2              ) gold=5
+[  8/100] JEE-Main MCQ base:OK (A              ) agent:OK (A              ) gold=A
+[  9/100] JEE-Main MCQ base:  X(B              ) agent:OK (21.1           ) gold=A
+[ 10/100] JEE-Main MCQ base:OK (B              ) agent:  X(D              ) gold=B
+[ 11/100] JEE-Main MCQ base:OK (\[ \boxed{C}. \) agent:OK (16             ) gold=C
+[ 12/100] JEE-Main MCQ base:OK (C              ) agent:  X(7              ) gold=C
+[ 13/100] JEE-Main MCQ base:OK (**Final Answer:) agent:  X(               ) gold=B
+[ 14/100] JEE-Main numeric base:  X(9              ) agent:  X(18             ) gold=1944
+[ 15/100] JEE-Main MCQ base:  X(C              ) agent:  X(C              ) gold=B
+[ 16/100] JEE-Main MCQ base:OK (A              ) agent:OK (7240           ) gold=A
+[ 17/100] JEE-Main numeric base:OK (54             ) agent:  X(10*sqrt(5)     ) gold=54
+[ 18/100] JEE-Main MCQ base:OK (A              ) agent:  X(0.9682458365518) gold=A
+[ 19/100] JEE-Main MCQ base:  X(B              ) agent:OK (C              ) gold=C
+[ 20/100] JEE-Main MCQ base:OK (D              ) agent:OK (D              ) gold=D
+[ 21/100] JEE-Main MCQ base:OK (C              ) agent:  X(D              ) gold=C
+[ 22/100] JEE-Main numeric base:  X(85             ) agent:  X(               ) gold=64
+[ 23/100] JEE-Main numeric base:  X((Note: The exac) agent:  X(The inverse of ) gold=38
+[ 24/100] JEE-Main numeric base:  X(44             ) agent:  X(64             ) gold=77
+[ 25/100] JEE-Main MCQ base:OK (The problem mig) agent:  X(48             ) gold=B
+[ 26/100] JEE-Main MCQ base:  X(A              ) agent:OK (The solutions f) gold=B
+[ 27/100] JEE-Main numeric base:  X(-20            ) agent:  X(99607500       ) gold=34
+
+[time budget reached — stopping after 27 problems]
+
+============================================================
+Baseline (LLM only): 44.4%  (12/27)
+Agent (with tools) : 29.6%  (8/27)
+------------------------------------------------------------
+topic           baseline     agent     n
+JEE-Main MCQ       57.9%     42.1%    19
+JEE-Main numeric     12.5%      0.0%     8
+------------------------------------------------------------
+agent stop reasons: {'final_answer': 22, 'step_limit': 5}
+============================================================
+Done in 6671.2s

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+.DS_Store
+results/
+# ...except the two logs the README's tables are computed from
+!results/
+results/*
+!results/calcbench_50.log
+!results/jeemains_run.log

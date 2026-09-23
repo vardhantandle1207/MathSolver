@@ -1,0 +1,352 @@
+[
+  {
+    "id": 1,
+    "topic": "integral",
+    "answer_type": "numeric",
+    "question": "Evaluate the definite integral of 12*x**3 + 6*x**2 + 14*x + 3 with respect to x from 2 to 9.",
+    "answer": "21637"
+  },
+  {
+    "id": 2,
+    "topic": "determinant",
+    "answer_type": "numeric",
+    "question": "Find the determinant of the 4x4 matrix [[-6, 2, 9, -8], [7, -3, -8, -7], [4, 4, -7, -2], [-7, 8, 4, -8]].",
+    "answer": "-2308"
+  },
+  {
+    "id": 3,
+    "topic": "combinatorics",
+    "answer_type": "numeric",
+    "question": "Compute the binomial coefficient C(27, 7).",
+    "answer": "888030"
+  },
+  {
+    "id": 4,
+    "topic": "linear_system",
+    "answer_type": "numeric",
+    "question": "Solve the system 7x + 1y + 4z = -37; 1x + 9y + 3z = 55; 5x + 7y + 3z = 29. Give the value of x + y + z.",
+    "answer": "-1"
+  },
+  {
+    "id": 5,
+    "topic": "derivative",
+    "answer_type": "numeric",
+    "question": "Let f(x) = 10*x**4 - 3*x**3 + 11*x. Find the derivative of f at x = 3.",
+    "answer": "1010"
+  },
+  {
+    "id": 6,
+    "topic": "number_theory",
+    "answer_type": "numeric",
+    "question": "Find the greatest common divisor of 254790 and 213964.",
+    "answer": "298"
+  },
+  {
+    "id": 7,
+    "topic": "modular",
+    "answer_type": "numeric",
+    "question": "Compute 8^92 mod 101.",
+    "answer": "81"
+  },
+  {
+    "id": 8,
+    "topic": "roots",
+    "answer_type": "numeric",
+    "question": "Find the sum of the roots of 7x^3 - 28x^2 + 30x - 32 = 0. Give your answer as a decimal to 4 places.",
+    "answer": "4.0000"
+  },
+  {
+    "id": 9,
+    "topic": "matrices",
+    "answer_type": "numeric",
+    "question": "Let A = [[-7, -2, 7], [5, 2, 6], [6, 3, 1]] and B = [[-1, -3, -1], [-6, 1, 8], [7, 2, 6]]. Find the trace of the matrix product AB.",
+    "answer": "91"
+  },
+  {
+    "id": 10,
+    "topic": "arithmetic",
+    "answer_type": "numeric",
+    "question": "Evaluate 4917 * 97 - 3^2 * 8.",
+    "answer": "476877"
+  },
+  {
+    "id": 11,
+    "topic": "integral",
+    "answer_type": "numeric",
+    "question": "Evaluate the definite integral of 7*x**3 + 12*x**2 + 6*x + 17 with respect to x from 1 to 7.",
+    "answer": "5814"
+  },
+  {
+    "id": 12,
+    "topic": "determinant",
+    "answer_type": "numeric",
+    "question": "Find the determinant of the 4x4 matrix [[-7, 8, 9, 1], [1, 2, 6, 9], [5, -7, -7, -1], [6, -7, -8, 0]].",
+    "answer": "-64"
+  },
+  {
+    "id": 13,
+    "topic": "combinatorics",
+    "answer_type": "numeric",
+    "question": "Compute the binomial coefficient C(28, 13).",
+    "answer": "37442160"
+  },
+  {
+    "id": 14,
+    "topic": "linear_system",
+    "answer_type": "numeric",
+    "question": "Solve the system 1x + 8y + 6z = 36; 3x + 2y + 8z = 22; 1x + 4y + 5z = 22. Give the value of x + y + z.",
+    "answer": "5"
+  },
+  {
+    "id": 15,
+    "topic": "derivative",
+    "answer_type": "numeric",
+    "question": "Let f(x) = 4*x**4 - 13*x**3 + 5*x. Find the derivative of f at x = 4.",
+    "answer": "405"
+  },
+  {
+    "id": 16,
+    "topic": "number_theory",
+    "answer_type": "numeric",
+    "question": "Find the greatest common divisor of 111936 and 21624.",
+    "answer": "1272"
+  },
+  {
+    "id": 17,
+    "topic": "modular",
+    "answer_type": "numeric",
+    "question": "Compute 8^269 mod 10007.",
+    "answer": "9023"
+  },
+  {
+    "id": 18,
+    "topic": "roots",
+    "answer_type": "numeric",
+    "question": "Find the sum of the roots of 10x^3 - 5x^2 - 23x + 15 = 0. Give your answer as a decimal to 4 places.",
+    "answer": "0.5000"
+  },
+  {
+    "id": 19,
+    "topic": "matrices",
+    "answer_type": "numeric",
+    "question": "Let A = [[0, 5, 3], [4, -1, -4], [-6, -3, -4]] and B = [[-1, -1, -8], [7, -3, 0], [1, -8, -4]]. Find the trace of the matrix product AB.",
+    "answer": "133"
+  },
+  {
+    "id": 20,
+    "topic": "arithmetic",
+    "answer_type": "numeric",
+    "question": "Evaluate 7064 * 88 - 5^4 * 7.",
+    "answer": "617257"
+  },
+  {
+    "id": 21,
+    "topic": "integral",
+    "answer_type": "numeric",
+    "question": "Evaluate the definite integral of 6*x**3 + 18*x**2 + 3*x + 16 with respect to x from 9 to 11.",
+    "answer": "15824"
+  },
+  {
+    "id": 22,
+    "topic": "determinant",
+    "answer_type": "numeric",
+    "question": "Find the determinant of the 4x4 matrix [[3, 3, 3, 3], [-6, 6, 3, -8], [-3, -7, -3, 5], [-4, -6, 1, -8]].",
+    "answer": "-2184"
+  },
+  {
+    "id": 23,
+    "topic": "combinatorics",
+    "answer_type": "numeric",
+    "question": "Compute the binomial coefficient C(19, 6).",
+    "answer": "27132"
+  },
+  {
+    "id": 24,
+    "topic": "linear_system",
+    "answer_type": "numeric",
+    "question": "Solve the system 2x + 6y + 1z = -4; 2x + 4y + 7z = 54; 3x + 5y + 6z = 50. Give the value of x + y + z.",
+    "answer": "12"
+  },
+  {
+    "id": 25,
+    "topic": "derivative",
+    "answer_type": "numeric",
+    "question": "Let f(x) = 11*x**4 - 7*x**3 + 9*x. Find the derivative of f at x = 1.",
+    "answer": "32"
+  },
+  {
+    "id": 26,
+    "topic": "number_theory",
+    "answer_type": "numeric",
+    "question": "Find the greatest common divisor of 63119 and 36849.",
+    "answer": "71"
+  },
+  {
+    "id": 27,
+    "topic": "modular",
+    "answer_type": "numeric",
+    "question": "Compute 17^285 mod 10007.",
+    "answer": "830"
+  },
+  {
+    "id": 28,
+    "topic": "roots",
+    "answer_type": "numeric",
+    "question": "Find the sum of the roots of 6x^3 - 30x^2 - 22x - 27 = 0. Give your answer as a decimal to 4 places.",
+    "answer": "5.0000"
+  },
+  {
+    "id": 29,
+    "topic": "matrices",
+    "answer_type": "numeric",
+    "question": "Let A = [[2, 0, 7], [-3, 8, -8], [-2, 8, 3]] and B = [[-4, -8, 8], [1, -6, 0], [8, 3, -3]]. Find the trace of the matrix product AB.",
+    "answer": "-25"
+  },
+  {
+    "id": 30,
+    "topic": "arithmetic",
+    "answer_type": "numeric",
+    "question": "Evaluate 6027 * 48 - 7^4 * 7.",
+    "answer": "272489"
+  },
+  {
+    "id": 31,
+    "topic": "integral",
+    "answer_type": "numeric",
+    "question": "Evaluate the definite integral of 9*x**3 + 8*x**2 + 9*x + 14 with respect to x from 4 to 11.",
+    "answer": "435785/12"
+  },
+  {
+    "id": 32,
+    "topic": "determinant",
+    "answer_type": "numeric",
+    "question": "Find the determinant of the 4x4 matrix [[7, 6, 2, -9], [-9, -1, 6, -1], [-3, 2, 5, 2], [2, -7, -2, -6]].",
+    "answer": "-2714"
+  },
+  {
+    "id": 33,
+    "topic": "combinatorics",
+    "answer_type": "numeric",
+    "question": "Compute the binomial coefficient C(21, 9).",
+    "answer": "293930"
+  },
+  {
+    "id": 34,
+    "topic": "linear_system",
+    "answer_type": "numeric",
+    "question": "Solve the system 8x + 1y + 8z = -47; 6x + 2y + 2z = -22; 7x + 4y + 8z = -41. Give the value of x + y + z.",
+    "answer": "-5"
+  },
+  {
+    "id": 35,
+    "topic": "derivative",
+    "answer_type": "numeric",
+    "question": "Let f(x) = 4*x**4 - 8*x**3 + 12*x. Find the derivative of f at x = 3.",
+    "answer": "228"
+  },
+  {
+    "id": 36,
+    "topic": "number_theory",
+    "answer_type": "numeric",
+    "question": "Find the greatest common divisor of 47040 and 42504.",
+    "answer": "168"
+  },
+  {
+    "id": 37,
+    "topic": "modular",
+    "answer_type": "numeric",
+    "question": "Compute 15^277 mod 10007.",
+    "answer": "3784"
+  },
+  {
+    "id": 38,
+    "topic": "roots",
+    "answer_type": "numeric",
+    "question": "Find the sum of the roots of 13x^3 - 30x^2 - 20x - 19 = 0. Give your answer as a decimal to 4 places.",
+    "answer": "2.3077"
+  },
+  {
+    "id": 39,
+    "topic": "matrices",
+    "answer_type": "numeric",
+    "question": "Let A = [[-4, -8, -4], [6, -4, 7], [3, -4, -4]] and B = [[-8, -8, -5], [8, -4, 5], [-2, -2, -8]]. Find the trace of the matrix product AB.",
+    "answer": "-73"
+  },
+  {
+    "id": 40,
+    "topic": "arithmetic",
+    "answer_type": "numeric",
+    "question": "Evaluate 4326 * 47 - 5^4 * 5.",
+    "answer": "200197"
+  },
+  {
+    "id": 41,
+    "topic": "integral",
+    "answer_type": "numeric",
+    "question": "Evaluate the definite integral of 12*x**3 + 10*x**2 + 19*x + 15 with respect to x from 1 to 3.",
+    "answer": "1298/3"
+  },
+  {
+    "id": 42,
+    "topic": "determinant",
+    "answer_type": "numeric",
+    "question": "Find the determinant of the 4x4 matrix [[2, 5, 9, 7], [4, 7, -5, 8], [-5, 7, 7, -9], [5, -4, -9, -5]].",
+    "answer": "-9825"
+  },
+  {
+    "id": 43,
+    "topic": "combinatorics",
+    "answer_type": "numeric",
+    "question": "Compute the binomial coefficient C(20, 7).",
+    "answer": "77520"
+  },
+  {
+    "id": 44,
+    "topic": "linear_system",
+    "answer_type": "numeric",
+    "question": "Solve the system 1x + 6y + 9z = 42; 9x + 9y + 8z = 64; 2x + 9y + 1z = -34. Give the value of x + y + z.",
+    "answer": "8"
+  },
+  {
+    "id": 45,
+    "topic": "derivative",
+    "answer_type": "numeric",
+    "question": "Let f(x) = 5*x**4 - 5*x**3 + 6*x. Find the derivative of f at x = 1.",
+    "answer": "11"
+  },
+  {
+    "id": 46,
+    "topic": "number_theory",
+    "answer_type": "numeric",
+    "question": "Find the greatest common divisor of 33418 and 29946.",
+    "answer": "434"
+  },
+  {
+    "id": 47,
+    "topic": "modular",
+    "answer_type": "numeric",
+    "question": "Compute 3^72 mod 10007.",
+    "answer": "7674"
+  },
+  {
+    "id": 48,
+    "topic": "roots",
+    "answer_type": "numeric",
+    "question": "Find the sum of the roots of 7x^3 + 38x^2 + 24x + 37 = 0. Give your answer as a decimal to 4 places.",
+    "answer": "-5.4286"
+  },
+  {
+    "id": 49,
+    "topic": "matrices",
+    "answer_type": "numeric",
+    "question": "Let A = [[8, -2, 0], [6, 8, 7], [8, -1, 8]] and B = [[0, -2, 6], [-4, 5, -5], [4, 6, 2]]. Find the trace of the matrix product AB.",
+    "answer": "147"
+  },
+  {
+    "id": 50,
+    "topic": "arithmetic",
+    "answer_type": "numeric",
+    "question": "Evaluate 1388 * 50 - 6^2 * 5.",
+    "answer": "69220"
+  }
+]

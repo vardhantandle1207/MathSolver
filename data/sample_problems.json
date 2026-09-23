@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "topic": "algebra",
+    "answer_type": "numeric",
+    "question": "Find the sum of the roots of the equation x^2 - 5x + 6 = 0.",
+    "answer": "5"
+  },
+  {
+    "id": 2,
+    "topic": "calculus",
+    "answer_type": "numeric",
+    "question": "Evaluate the definite integral of x^2 with respect to x from 0 to 3.",
+    "answer": "9"
+  },
+  {
+    "id": 3,
+    "topic": "calculus",
+    "answer_type": "numeric",
+    "question": "What is the value of the derivative of sin(x) at x = 0?",
+    "answer": "1"
+  },
+  {
+    "id": 4,
+    "topic": "coordinate",
+    "answer_type": "numeric",
+    "question": "Find the distance between the points (0, 0) and (3, 4).",
+    "answer": "5"
+  },
+  {
+    "id": 5,
+    "topic": "algebra",
+    "answer_type": "mcq",
+    "question": "If f(x) = x^2, what is f(3)? Options: (A) 6 (B) 9 (C) 3 (D) 12",
+    "answer": "B"
+  },
+  {
+    "id": 6,
+    "topic": "trigonometry",
+    "answer_type": "numeric",
+    "question": "What is the value of sin(30 degrees)?",
+    "answer": "0.5"
+  },
+  {
+    "id": 7,
+    "topic": "calculus",
+    "answer_type": "numeric",
+    "question": "Evaluate the limit of sin(x)/x as x approaches 0.",
+    "answer": "1"
+  },
+  {
+    "id": 8,
+    "topic": "probability",
+    "answer_type": "numeric",
+    "question": "A fair coin is tossed twice. What is the probability of getting exactly one head?",
+    "answer": "0.5"
+  },
+  {
+    "id": 9,
+    "topic": "matrices",
+    "answer_type": "numeric",
+    "question": "Find the determinant of the matrix [[1, 2], [3, 4]].",
+    "answer": "-2"
+  },
+  {
+    "id": 10,
+    "topic": "coordinate",
+    "answer_type": "mcq",
+    "question": "What is the slope of the line passing through (1, 2) and (3, 6)? Options: (A) 1 (B) 2 (C) 3 (D) 4",
+    "answer": "B"
+  }
+]
