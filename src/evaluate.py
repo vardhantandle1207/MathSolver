@@ -76,6 +76,14 @@ def run_eval(path: str, limit: int | None, sample: int | None = None,
     # cheap, so every prediction is kept: re-scoring and error analysis then run
     # offline instead of costing another pass over the benchmark.
     records: list[dict] = []
+    # Append each record as it lands, one JSON object per line. A long run is
+    # hours of GPU time; writing only at the end means a crash, a reboot or a
+    # killed process loses all of it. The .jsonl is the durable copy and the
+    # final .json is written at the end for convenience.
+    stream_path = f"{out_path}l" if out_path else None   # foo.json -> foo.jsonl
+    if stream_path:
+        os.makedirs(os.path.dirname(stream_path) or ".", exist_ok=True)
+        open(stream_path, "w").close()
 
     def _one(item: dict) -> dict:
         """Solve one problem twice — once without tools, once with — and score
@@ -127,6 +135,9 @@ def run_eval(path: str, limit: int | None, sample: int | None = None,
             rec = future.result()
             done += 1
             i = done
+            if stream_path:
+                with open(stream_path, "a", encoding="utf-8") as sf:
+                    sf.write(json.dumps(rec, ensure_ascii=False) + "\n")
             records.append(rec)
             stops[rec["stopped_reason"]] += 1
 

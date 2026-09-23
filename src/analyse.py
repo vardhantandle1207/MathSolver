@@ -108,7 +108,12 @@ def main() -> None:
     args = parser.parse_args()
 
     with open(args.records, encoding="utf-8") as f:
-        records = json.load(f)
+        if args.records.endswith(".jsonl"):
+            # Streamed copy: one record per line, readable while a run is still
+            # going (and all that survives if a run is cut short).
+            records = [json.loads(line) for line in f if line.strip()]
+        else:
+            records = json.load(f)
 
     analyse(records)
 
