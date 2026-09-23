@@ -86,7 +86,7 @@ else
   git -C "$PROJECT" pull --ff-only || true
 fi
 cd "$PROJECT"
-uv venv --python 3.12 .venv
+uv venv --python 3.12 --allow-existing .venv
 uv pip install --python .venv/bin/python -r requirements.txt
 
 cat > .env <<EOF
