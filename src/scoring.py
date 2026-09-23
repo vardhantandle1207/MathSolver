@@ -10,6 +10,12 @@ match otherwise.
 import re
 from fractions import Fraction
 
+from sympy.parsing.sympy_parser import (
+    implicit_multiplication_application,
+    parse_expr,
+    standard_transformations,
+)
+
 # Floor for float comparison. The real tolerance is derived from how precisely
 # the gold answer is written (see _tolerance_for): an answer key rounded to 2
 # decimals must still accept an exact-but-longer '0.3333' against '0.33'.
@@ -24,6 +30,12 @@ def _tolerance_for(gold_text: str) -> float:
     if not match:
         return _NUM_TOL
     return max(_NUM_TOL, 0.5 * 10 ** -len(match.group(1)))
+
+
+def _close_enough(pred: float, gold: float, gold_text: str) -> bool:
+    """Absolute tolerance from the gold's precision, plus a small relative slack
+    so a surd gold (10*sqrt(5) = 22.360679...) accepts a rounded 22.3607."""
+    return abs(pred - gold) <= max(_tolerance_for(gold_text), 1e-4 * abs(gold))
 
 
 def _strip_latex(text: str) -> str:
@@ -60,19 +72,78 @@ def _extract_mcq_set(text: str) -> set[str]:
     return letters
 
 
-def _to_number(text: str) -> float | None:
-    """Best-effort parse of a numeric answer, including fractions like '3/4'."""
-    text = text.strip().replace(" ", "")
-    # Strip a leading 'x=' style prefix if the model added one.
-    text = re.sub(r"^[a-zA-Z]\s*=\s*", "", text)
+def _latex_to_expr(text: str) -> str:
+    r"""Turn exam/model LaTeX into something SymPy can parse.
 
-    if re.fullmatch(r"-?\d+/\d+", text):
+    This matters more than it looks. Option values are written like
+    '\frac{47}{3}' and '2\sqrt{3}', and a model answers with '10*sqrt(5)'.
+    Stripping the backslashes and grabbing the first number reads '\frac{47}{3}'
+    as *473* — so before this, every fraction or surd option was matched against
+    a nonsense value."""
+    text = text.strip()
+    for junk in (r"\left", r"\right", r"\displaystyle", r"\,", r"\!", r"\;", "$"):
+        text = text.replace(junk, "")
+    text = re.sub(r"\\[()\[\]]", "", text)                     # \( \) \[ \]
+    # \sqrt first: it turns its braces into parens, so a \frac wrapped around it
+    # ('\frac{\sqrt{3}}{2}') is left with brace-free arguments for the rule below.
+    while re.search(r"\\sqrt\s*\{([^{}]*)\}", text):
+        text = re.sub(r"\\sqrt\s*\{([^{}]*)\}", r"sqrt(\1)", text)
+    # \frac{a}{b} -> (a)/(b), repeated so nested fractions unwind
+    frac = re.compile(r"\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}")
+    while frac.search(text):
+        text = frac.sub(r"((\1)/(\2))", text)
+    text = re.sub(r"\\(times|cdot)", "*", text)
+    text = re.sub(r"\\(pi|sqrt|log|ln|sin|cos|tan|exp)", r"\1", text)
+    text = text.replace("^", "**").replace("{", "(").replace("}", ")")
+    return text
+
+
+# Only these characters reach SymPy's parser. parse_expr() evaluates what it is
+# given, and the strings here come from model output, so the input is narrowed
+# to maths before it gets there.
+_SAFE_EXPR = re.compile(r"^[0-9a-zA-Z+\-*/^().,\s]*$")
+
+_SYMPY_TRANSFORMS = standard_transformations + (implicit_multiplication_application,)
+
+
+def _sympy_value(text: str) -> float | None:
+    """Evaluate a whole expression numerically, or None if it isn't one."""
+    if not text or len(text) > 200 or not _SAFE_EXPR.match(text):
+        return None
+    try:
+        expr = parse_expr(text, transformations=_SYMPY_TRANSFORMS, evaluate=True)
+        if expr.free_symbols:                 # still has an unknown in it
+            return None
+        value = complex(expr.evalf())
+        if abs(value.imag) > 1e-9:            # complex answers aren't comparable
+            return None
+        return float(value.real)
+    except Exception:                         # noqa: BLE001 - unparseable is just "not a number"
+        return None
+
+
+def _to_number(text: str) -> float | None:
+    """Best-effort parse of a numeric answer.
+
+    Tries to evaluate the whole thing first — '10*sqrt(5)' is 22.36, not 10 —
+    and only falls back to picking a number out of prose when that fails."""
+    text = text.strip()
+    # Strip a leading 'x=' style prefix if the model added one.
+    text = re.sub(r"^\s*[a-zA-Z]\s*=\s*", "", text)
+
+    compact = text.replace(" ", "")
+    if re.fullmatch(r"-?\d+/\d+", compact):
         try:
-            return float(Fraction(text))
+            return float(Fraction(compact))
         except (ValueError, ZeroDivisionError):
             return None
-    # Grab the first number-looking token from whatever is left.
-    m = re.search(r"-?\d+\.?\d*", text)
+
+    value = _sympy_value(_latex_to_expr(text))
+    if value is not None:
+        return value
+
+    # Fallback: the answer is buried in a sentence ('The answer is 54').
+    m = re.search(r"-?\d+\.?\d*", compact)
     if m:
         try:
             return float(m.group())
@@ -95,8 +166,8 @@ def _letter_for_value(predicted: str, options: list[str] | None) -> str | None:
     if pred_num is None:
         return None
     for i, option in enumerate(options[:4]):
-        opt_num = _to_number(_strip_latex(str(option)))
-        if opt_num is not None and abs(pred_num - opt_num) <= _tolerance_for(str(option)):
+        opt_num = _to_number(str(option))
+        if opt_num is not None and _close_enough(pred_num, opt_num, str(option)):
             return "ABCD"[i]
     return None
 
@@ -124,7 +195,7 @@ def is_correct(predicted: str, gold: str, answer_type: str,
     pred_num = _to_number(predicted)
     gold_num = _to_number(gold)
     if pred_num is not None and gold_num is not None:
-        return abs(pred_num - gold_num) <= _tolerance_for(gold)
+        return _close_enough(pred_num, gold_num, gold)
 
     # last resort: normalised string equality
     return predicted.strip().lower() == gold.strip().lower()

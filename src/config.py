@@ -24,7 +24,7 @@ class Settings:
 
     # Agent knobs. 8 steps is usually enough; anything more and it's probably
     # stuck in a loop, so we bail out.
-    max_steps: int = int(os.getenv("MAX_STEPS", "8"))
+    max_steps: int = int(os.getenv("MAX_STEPS", "10"))
     temperature: float = float(os.getenv("TEMPERATURE", "0.0"))
 
     # Hard timeout (seconds) for any single code execution.
@@ -42,7 +42,7 @@ class Settings:
     max_nudges: int = int(os.getenv("MAX_NUDGES", "2"))
 
     # Cost budget: hard stop once cumulative tokens exceed this. 0 = no limit.
-    max_tokens_budget: int = int(os.getenv("MAX_TOKENS_BUDGET", "20000"))
+    max_tokens_budget: int = int(os.getenv("MAX_TOKENS_BUDGET", "30000"))
 
     # Input validation: reject absurdly long problem strings up front.
     max_problem_chars: int = int(os.getenv("MAX_PROBLEM_CHARS", "4000"))

@@ -18,8 +18,12 @@ Rules:
    submit it.
 
 Answer format:
-- Numeric question -> just the number, e.g. 2.75
-- Single-answer MCQ -> one letter, e.g. B
+- Numeric question -> just the number, e.g. 2.75. Evaluate it first: submit
+  22.3607, never `10*sqrt(5)` or an unevaluated expression. `print(float(expr))`
+  in the tool if you are unsure.
+- Single-answer MCQ -> one letter, e.g. B. Work the value out first, then read
+  off the option that matches it. Don't burn tool calls comparing every option
+  one by one; compute once, then choose.
 - Multiple-correct MCQ -> every correct letter joined, e.g. AC or BCD. Test all
   four options; more than one is often correct.
 """

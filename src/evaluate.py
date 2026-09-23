@@ -12,9 +12,11 @@ tools help most (usually calculus/algebra, less so on tricky word problems).
 
 import argparse
 import json
+import os
 import random
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 from .agent import solve
 from .baseline import solve_baseline
@@ -57,7 +59,8 @@ def _accuracy(hits: int, total: int) -> str:
 
 
 def run_eval(path: str, limit: int | None, sample: int | None = None,
-             max_minutes: float | None = None) -> dict:
+             max_minutes: float | None = None, out_path: str | None = None,
+             workers: int = 1) -> dict:
     check_config()
     problems = load_problems(path, limit, sample)
     deadline = time.time() + max_minutes * 60 if max_minutes else None
@@ -69,53 +72,79 @@ def run_eval(path: str, limit: int | None, sample: int | None = None,
     # same whether the model was wrong or the provider was refusing every call.
     stops: dict[str, int] = defaultdict(int)
     consecutive_errors = 0
+    # Full per-problem records. A model run is expensive and a grader change is
+    # cheap, so every prediction is kept: re-scoring and error analysis then run
+    # offline instead of costing another pass over the benchmark.
+    records: list[dict] = []
 
-    for i, item in enumerate(problems, start=1):
-        # Wall-clock budget: an unattended run on a slow local model should hand
-        # back the problems it finished rather than be killed mid-question and
-        # lose the summary entirely.
-        if deadline and time.time() > deadline:
-            print(f"\n[time budget reached — stopping after {i - 1} problems]")
-            problems = problems[:i - 1]
-            break
-
+    def _one(item: dict) -> dict:
+        """Solve one problem twice — once without tools, once with — and score
+        both. Pure with respect to shared state, so the pool can run several at
+        once: each call builds its own graph and its own model client."""
+        t0 = time.time()
         question = item["question"]
         gold = str(item["answer"])
         atype = item.get("answer_type", "numeric")
-        topic = item.get("topic", "misc")
+        options = item.get("options")
 
         base_pred = solve_baseline(question)
-        options = item.get("options")
-        base_ok = is_correct(base_pred, gold, atype, options)
-
         agent_res = solve(question)
-        agent_ok = is_correct(agent_res.answer, gold, atype, options)
-        stops[agent_res.stopped_reason] += 1
+        return {
+            "id": item.get("id"),
+            "topic": item.get("topic", "misc"),
+            "answer_type": atype,
+            "question": question,
+            "gold": gold,
+            "options": options,
+            "baseline_answer": base_pred,
+            "baseline_correct": bool(is_correct(base_pred, gold, atype, options)),
+            "agent_answer": agent_res.answer,
+            "agent_correct": bool(is_correct(agent_res.answer, gold, atype, options)),
+            "agent_steps": agent_res.steps_taken,
+            "agent_tokens": agent_res.tokens_used,
+            "stopped_reason": agent_res.stopped_reason,
+            "seconds": round(time.time() - t0, 1),
+            "trace": agent_res.trace,
+        }
 
-        # Fail loudly. If the provider is refusing every call (quota, outage),
-        # every question scores as a miss and the run quietly reports 0% — a
-        # number that looks like a result but measures nothing.
-        consecutive_errors = consecutive_errors + 1 if agent_res.stopped_reason == "llm_error" else 0
-        if consecutive_errors >= _ERROR_ABORT_AFTER:
-            detail = next((t.get("content", "") for t in agent_res.trace
-                           if str(t.get("content", "")).startswith("[error]")), "")
-            raise RuntimeError(
-                f"Aborting: {consecutive_errors} consecutive LLM failures — the "
-                f"results so far are not a measurement of the agent.\n{detail}"
-            )
+    # A local model is idle much of the time a single problem runs (the agent is
+    # parsing, running SymPy, waiting on a subprocess), so a few problems in
+    # flight raises throughput well before the GPU saturates.
+    flag = lambda ok: "OK " if ok else "  X"
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = []
+        for item in problems:
+            if deadline and time.time() > deadline:
+                print(f"\n[time budget reached — submitted {len(futures)} problems]")
+                break
+            futures.append(pool.submit(_one, item))
 
-        baseline_hits += base_ok
-        agent_hits += agent_ok
-        by_topic[topic][0] += base_ok
-        by_topic[topic][1] += agent_ok
-        by_topic[topic][2] += 1
+        for i, future in enumerate(futures, start=1):
+            rec = future.result()
+            records.append(rec)
+            stops[rec["stopped_reason"]] += 1
 
-        # A one-line progress log so long runs aren't a black box.
-        flag = lambda ok: "OK " if ok else "  X"
-        print(f"[{i:>3}/{len(problems)}] {topic:<12} "
-              f"base:{flag(base_ok)}({base_pred[:15]:<15}) "
-              f"agent:{flag(agent_ok)}({agent_res.answer[:15]:<15}) gold={gold}")
+            base_ok, agent_ok = rec["baseline_correct"], rec["agent_correct"]
+            baseline_hits += base_ok
+            agent_hits += agent_ok
+            by_topic[rec["topic"]][0] += base_ok
+            by_topic[rec["topic"]][1] += agent_ok
+            by_topic[rec["topic"]][2] += 1
 
+            consecutive_errors = (consecutive_errors + 1
+                                  if rec["stopped_reason"] == "llm_error" else 0)
+            if consecutive_errors >= _ERROR_ABORT_AFTER:
+                raise RuntimeError(
+                    f"Aborting: {consecutive_errors} consecutive LLM failures — "
+                    "the results so far are not a measurement of the agent."
+                )
+
+            print(f"[{i:>3}/{len(futures)}] {rec['topic']:<18} "
+                  f"base:{flag(base_ok)}({str(rec['baseline_answer'])[:15]:<15}) "
+                  f"agent:{flag(agent_ok)}({str(rec['agent_answer'])[:15]:<15}) "
+                  f"gold={rec['gold']}")
+
+    problems = [r for r in records]
     total = len(problems)
     print("\n" + "=" * 60)
     print(f"Baseline (LLM only): {_accuracy(baseline_hits, total)}  "
@@ -130,10 +159,17 @@ def run_eval(path: str, limit: int | None, sample: int | None = None,
     print("agent stop reasons:", dict(sorted(stops.items(), key=lambda kv: -kv[1])))
     print("=" * 60)
 
+    if out_path:
+        os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(records, f, indent=2, ensure_ascii=False)
+        print(f"wrote {len(records)} records -> {out_path}")
+
     return {
         "baseline_accuracy": baseline_hits / total if total else 0,
         "agent_accuracy": agent_hits / total if total else 0,
         "n": total,
+        "records": records,
     }
 
 
@@ -142,6 +178,13 @@ if __name__ == "__main__":
     parser.add_argument("--data", default="data/sample_problems.json")
     parser.add_argument("--limit", type=int, default=None,
                         help="Only run the first N problems (handy for a quick check).")
+    parser.add_argument("--workers", type=int, default=1,
+                        help="Solve this many problems concurrently. A local "
+                             "model has idle time per problem, so 2-4 raises "
+                             "throughput on one GPU.")
+    parser.add_argument("--out", default=None,
+                        help="Write full per-problem records (incl. traces) to "
+                             "this JSON file, for offline re-scoring/analysis.")
     parser.add_argument("--max-minutes", type=float, default=None,
                         help="Stop cleanly once this many minutes have elapsed "
                              "and report on what finished.")
@@ -151,5 +194,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     start = time.time()
-    run_eval(args.data, args.limit, args.sample, args.max_minutes)
+    run_eval(args.data, args.limit, args.sample, args.max_minutes, args.out,
+             args.workers)
     print(f"Done in {time.time() - start:.1f}s")

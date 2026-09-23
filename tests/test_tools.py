@@ -249,3 +249,38 @@ def test_value_matching_no_option_fails():
 
 def test_letter_still_wins_when_present():
     assert is_correct("The answer is A", "A", "mcq", _OPTS)
+
+
+# ---- scoring: LaTeX values are evaluated, not scraped ----------------------
+# Before this, '\frac{47}{3}' was read as 473 (digits concatenated) and
+# '2\sqrt{3}' as 23, so every fraction/surd option matched against nonsense.
+
+from src.scoring import _to_number
+
+def test_latex_fraction_is_evaluated():
+    assert abs(_to_number(r"\frac{47}{3}") - 47 / 3) < 1e-9
+
+def test_nested_sqrt_inside_fraction():
+    assert abs(_to_number(r"\frac{\sqrt{3}}{2}") - 0.8660254) < 1e-6
+
+def test_surd_is_evaluated_not_truncated():
+    assert abs(_to_number(r"2\sqrt{3}") - 3.4641016) < 1e-6
+
+def test_whole_expression_beats_first_number():
+    # '10*sqrt(5)' is 22.36, not 10.
+    assert abs(_to_number("10*sqrt(5)") - 22.3606797) < 1e-6
+
+def test_prose_fallback_still_works():
+    assert _to_number("The answer is 54") == 54.0
+
+def test_unparseable_is_none():
+    assert _to_number("no numbers here") is None
+
+def test_option_matching_uses_evaluated_latex():
+    opts = [r"\frac{47}{3}", r"\frac{46}{3}", "18", "13"]
+    assert is_correct("15.3333", "B", "mcq", opts)      # 46/3
+    assert not is_correct("15.6667", "B", "mcq", opts)  # that's 47/3, option A
+
+def test_expression_parser_rejects_non_math():
+    # Only maths characters reach SymPy's parser.
+    assert _to_number("__import__('os')") is None
