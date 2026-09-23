@@ -1,15 +1,13 @@
 """
 Load real JEE Main 2025 maths questions and reshape them to our eval schema.
 
-Why this set sits between the other two:
+Why this set matters:
 
-  CalcBench  — my own generator. Method trivial, arithmetic brutal. Isolates
-               what the tool layer contributes, but I wrote it.
-  JEE Main   — a real public exam, and the one most students actually sit.
-               Multi-step reasoning, but each step is a computation a tool can
-               do. This is the honest middle ground.
-  JEEBench   — JEE Advanced. So hard that a 7B model fails with or without
-               tools, which tells you nothing about the tools.
+CalcBench is my own generator — method trivial, arithmetic brutal — which
+isolates what the tool layer contributes, but I wrote it. JEE Main is a real
+public exam, and the one most students actually sit: multi-step reasoning where
+each step is still a computation a tool could do. It is the honest test of
+whether the agent helps on problems nobody tailored to it.
 
 Source: PhysicsWallahAI/JEE-Main-2025-Math on HuggingFace — the January and
 April 2025 sittings, 475 maths questions with official answer keys.

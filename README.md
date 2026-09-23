@@ -23,7 +23,7 @@ questions where planning, not arithmetic, is the bottleneck. See
 - Runs a LangGraph **reason → act → observe** loop: the model plans, writes SymPy
   code, sees the result, and either continues or commits an answer.
 - Remembers a conversation when given a `thread_id`, so follow-ups work.
-- Grades itself with numeric-tolerance + MCQ-aware scoring (incl. JEEBench's
+- Grades itself with numeric-tolerance + MCQ-aware scoring (including
   multiple-correct questions).
 - Ships a Streamlit UI that exposes the **full reasoning trace** — every tool
   call and what it returned.
@@ -76,11 +76,10 @@ mathsolver-agent/
 ├── data/
 │   ├── sample_problems.json   # 10 verified problems (quick smoke set)
 │   ├── make_calcbench.py      # generates the computation-heavy set (SymPy gold)
-│   ├── load_jeemains.py       # pulls 475 real JEE Main 2025 questions
-│   └── load_jeebench.py       # pulls the 236 JEEBench maths problems
+│   └── load_jeemains.py       # pulls 475 real JEE Main 2025 questions
 ├── src/
-│   ├── config.py              # provider + model + agent knobs (env-driven)
-│   ├── llm.py                 # chat-model factory (Groq or Ollama)
+│   ├── config.py              # model + agent knobs (env-driven)
+│   ├── llm.py                 # chat-model factory (Ollama)
 │   ├── prompts.py             # system prompts
 │   ├── tools/
 │   │   ├── python_repl.py     # sandboxed subprocess exec w/ timeout
@@ -94,30 +93,23 @@ mathsolver-agent/
     └── test_tools.py          # offline tests incl. a full-loop test (fake model)
 ```
 
-## Setup (all free)
+## Setup (all free, runs locally)
 
 ```bash
-git clone <your-repo-url> && cd mathsolver-agent
+git clone https://github.com/vardhantandle1207/MathSolver.git && cd MathSolver
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # then add your key
+cp .env.example .env
 ```
 
-You need **one** backend:
+The model runs locally through **Ollama** — no API key, no rate limits:
 
-**Option A — Groq (hosted, free tier, recommended)**
-Free key at <https://console.groq.com>, then in `.env`:
-```
-LLM_PROVIDER=groq
-GROQ_API_KEY=gsk_...
-```
-
-**Option B — Ollama (fully local, no key)**
 ```bash
-# install from https://ollama.com
+# install from https://ollama.com, then:
 ollama pull qwen2.5:7b-instruct
 ```
-then set `LLM_PROVIDER=ollama` in `.env`.
+
+Any tool-calling Ollama model works; set `OLLAMA_MODEL` in `.env` to switch.
 
 ## Usage
 
@@ -226,11 +218,11 @@ Two caveats I'd rather state than bury:
   right one by luck. The numeric split (12.5 % vs 0 %) has no such escape hatch
   and shows the same direction.
 
-### JEEBench (JEE Advanced) — attempted, not reportable
+### Why only two sets
 
-Runs on this set were abandoned: a 7B model solves almost nothing with or
-without tools, so the comparison measures noise. Kept in the repo
-(`data/load_jeebench.py`) because ruling a benchmark out is part of the work.
+A third, harder set (JEE Advanced) was tried and dropped: a 7B model solves
+almost nothing on it with or without tools, so the comparison measures noise
+rather than the tool layer. Ruling a benchmark out is part of the work.
 
 ### What this actually shows
 
@@ -284,7 +276,7 @@ tolerance, matches MCQ letters, and treats multiple-correct answers as sets.
 
 Two details that decide whether the numbers mean anything:
 
-- **Tolerance follows the gold answer's precision.** JEEBench rounds to 2
+- **Tolerance follows the gold answer's precision.** Answer keys round to 2
   decimals but SymPy doesn't, so a fixed `1e-3` would mark a correct `0.3333`
   wrong against a gold of `0.33`. The tolerance is half a unit in the gold's last
   decimal place instead.
@@ -295,10 +287,13 @@ Two details that decide whether the numbers mean anything:
 ## Limitations & honest notes
 
 - Bounded by the base model's reasoning — tools fix *computation*, not a wrong
-  plan. Hard JEE-Advanced problems still fail when the approach is wrong.
+  plan. This is measured, not assumed: see the JEE Main result above, where the
+  agent loses to the plain model on problems that need a plan first.
 - The Python sandbox is subprocess + timeout, not a hardened jail. Fine for a
   trusted local demo; don't expose it to arbitrary internet input as-is.
 - Multiple-correct MCQs are the hardest bucket (partial credit isn't given).
+- Results come from one 7B model. A larger model would likely narrow the JEE
+  Main gap; that's the obvious next experiment, not a finished conclusion.
 
 ## License
 

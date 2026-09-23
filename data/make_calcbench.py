@@ -1,12 +1,11 @@
 """
 Build CalcBench — a computation-heavy eval set, generated with SymPy.
 
-Why this exists alongside JEEBench:
+Why this exists alongside the real exam set:
 
-JEEBench measures whether the *model* can find a method. On JEE-Advanced
-problems a 7B model mostly can't, so baseline and agent both score near zero and
-the tool layer's contribution is buried in noise — you learn nothing about the
-thing this project is actually testing.
+A real exam measures whether the *model* can find a method. When it can't, the
+baseline and the agent both score near zero and the tool layer's contribution is
+buried in noise — you learn nothing about the thing this project is testing.
 
 This set isolates the other variable. Every problem has a method a model states
 correctly in one line (integrate a polynomial, take a determinant, apply Vieta)

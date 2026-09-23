@@ -11,8 +11,8 @@ import re
 from fractions import Fraction
 
 # Floor for float comparison. The real tolerance is derived from how precisely
-# the gold answer is written (see _tolerance_for): JEEBench rounds to 2 decimals,
-# so a gold of '0.33' must still accept an exact-but-longer '0.3333'.
+# the gold answer is written (see _tolerance_for): an answer key rounded to 2
+# decimals must still accept an exact-but-longer '0.3333' against '0.33'.
 _NUM_TOL = 1e-3
 
 
@@ -51,7 +51,7 @@ def _extract_mcq_letter(text: str) -> str | None:
 
 def _extract_mcq_set(text: str) -> set[str]:
     """All distinct A-D options mentioned. Handles both spaced ('A and D') and
-    compact ('AD', 'ABD') forms, since JEEBench gold keys are compact but model
+    compact ('AD', 'ABD') forms, since answer keys are usually compact but model
     output usually isn't. We match whole tokens made only of A-D letters, then
     explode them into individual options."""
     letters: set[str] = set()
@@ -115,7 +115,7 @@ def is_correct(predicted: str, gold: str, answer_type: str,
         return pred_letter is not None and pred_letter == gold_letter
 
     if answer_type == "mcq_multiple":
-        # JEEBench 'multiple correct' — all selected options must match exactly.
+        # 'multiple correct' questions — the selected set must match exactly.
         pred_set = _extract_mcq_set(predicted)
         gold_set = _extract_mcq_set(gold)
         return bool(gold_set) and pred_set == gold_set

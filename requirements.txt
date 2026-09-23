@@ -1,13 +1,12 @@
 # Agent framework
 langgraph>=0.2.0            # StateGraph — the agent's control flow
 langchain-core>=0.3.0       # message types, tool binding
-langchain-groq>=0.2.0       # Groq chat model (free hosted tier)
-langchain-ollama>=0.2.0     # local model fallback (no key)
+langchain-ollama>=0.2.0     # local chat model (no key, no rate limits)
 
 # Math + data
 sympy>=1.12                 # symbolic math engine (the actual solver)
 numpy>=1.26.0
-datasets>=2.19.0            # pulls JEEBench from HuggingFace
+datasets>=2.19.0            # pulls the JEE Main set from HuggingFace
 python-dotenv>=1.0.0        # loads the .env config
 
 # UI + dev

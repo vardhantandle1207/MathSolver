@@ -28,10 +28,10 @@ def load_problems(path: str, limit: int | None, sample: int | None = None,
         problems = json.load(f)
 
     if sample:
-        # JEEBench is stored grouped by question type, so a plain head-slice can
-        # miss a whole type (the first 40 contain no Numeric problems at all).
-        # Sample proportionally within each type instead, with a fixed seed so
-        # the reported numbers are reproducible.
+        # Datasets are often stored grouped by question type, so a plain
+        # head-slice can miss a whole type (one set's first 40 problems contained
+        # no numeric questions at all). Sample proportionally within each type
+        # instead, with a fixed seed so the reported numbers are reproducible.
         by_type: dict[str, list[dict]] = defaultdict(list)
         for p in problems:
             by_type[p.get("topic", "misc")].append(p)

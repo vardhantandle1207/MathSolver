@@ -59,7 +59,7 @@ def test_scoring_wrong_answer():
     assert not is_correct("7", "5", "numeric")
 
 
-# ---- scoring: JEEBench multiple-correct MCQs ------------------------------
+# ---- scoring: multiple-correct MCQs ---------------------------------------
 
 def test_scoring_mcq_multiple_match():
     assert is_correct("A and D", "AD", "mcq_multiple")
@@ -161,7 +161,7 @@ def test_loop_detection_stops_repeated_calls():
 # ---- scoring: fixes for rounded gold answers and stray letters -------------
 
 def test_scoring_accepts_precision_beyond_rounded_gold():
-    # JEEBench rounds to 2 decimals; SymPy doesn't. Both are the same answer.
+    # Answer keys round to 2 decimals; SymPy does not. Both are the same answer.
     assert is_correct("0.3333", "0.33", "numeric")
 
 def test_scoring_still_rejects_a_real_miss():
