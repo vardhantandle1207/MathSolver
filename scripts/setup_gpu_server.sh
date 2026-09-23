@@ -13,6 +13,11 @@ set -euo pipefail
 
 GPU="${GPU:-0}"
 MODEL="${MODEL:-qwen2.5:14b-instruct}"
+# Pinned deliberately. Ollama >= 0.13 requires NVIDIA driver 550+; a shared
+# cluster often runs older (this one: 535 / CUDA 12.2) and gives you no sudo to
+# change it. 0.12.11 ships a cuda_v12 backend that loads on 535, and it is
+# packaged as .tgz, so no zstd is needed either.
+OLLAMA_VERSION="${OLLAMA_VERSION:-v0.12.11}"
 APPS="$HOME/apps"
 PROJECT="${PROJECT:-$HOME/mathsolver}"
 OLLAMA_DIR="$APPS/ollama"
@@ -24,27 +29,10 @@ echo "=== 1/5  Ollama (user-local, no sudo) ==="
 # is decompressed with that and handed to tar as a plain stream.
 if [ ! -x "$OLLAMA_DIR/bin/ollama" ]; then
   mkdir -p "$OLLAMA_DIR"
-  TAG=$(curl -s https://api.github.com/repos/ollama/ollama/releases/latest \
-        | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')
-  URL="https://github.com/ollama/ollama/releases/download/$TAG/ollama-linux-amd64.tar.zst"
-  echo "downloading ollama $TAG (~1.4GB)..."
-  curl -fL --progress-bar "$URL" -o "$APPS/ollama.tar.zst"
-
-  if command -v zstd >/dev/null; then
-    zstd -dc "$APPS/ollama.tar.zst" | tar -x -C "$OLLAMA_DIR"
-  else
-    python3 -m pip install --user --quiet zstandard
-    python3 - "$APPS/ollama.tar.zst" "$OLLAMA_DIR" <<'PY'
-import subprocess, sys, zstandard
-archive, dest = sys.argv[1], sys.argv[2]
-tar = subprocess.Popen(["tar", "-x", "-C", dest], stdin=subprocess.PIPE)
-with open(archive, "rb") as fh:
-    zstandard.ZstdDecompressor().copy_stream(fh, tar.stdin)
-tar.stdin.close()
-raise SystemExit(tar.wait())
-PY
-  fi
-  rm -f "$APPS/ollama.tar.zst"
+  echo "downloading ollama $OLLAMA_VERSION (~1.9GB)..."
+  curl -fL --progress-bar \
+    "https://github.com/ollama/ollama/releases/download/$OLLAMA_VERSION/ollama-linux-amd64.tgz" \
+    | tar -xz -C "$OLLAMA_DIR"
 else
   echo "already installed"
 fi
@@ -57,6 +45,7 @@ if curl -s --max-time 3 http://localhost:11434/api/tags >/dev/null 2>&1; then
   echo "a server is already listening on 11434 — reusing it"
 else
   mkdir -p "$OLLAMA_MODELS"
+  # Pin to one card so the rest of a shared box stays free for other people.
   CUDA_VISIBLE_DEVICES="$GPU" nohup "$OLLAMA_DIR/bin/ollama" serve \
     > "$HOME/ollama-serve.log" 2>&1 &
   echo "waiting for it to come up..."
@@ -113,6 +102,11 @@ from src.agent import solve
 r = solve('Evaluate the definite integral of x^2 from 0 to 3.')
 print('smoke:', repr(r.answer), '| stop:', r.stopped_reason, '| steps:', r.steps_taken)
 "
+
+echo
+echo "=== BACKEND CHECK ==="
+# If this says Vulkan rather than CUDA, the GPU is not really being used.
+grep -iE "inference compute" "$HOME/ollama-serve.log" | tail -2 || true
 
 echo
 echo "=== READY ==="
