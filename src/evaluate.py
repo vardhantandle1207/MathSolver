@@ -16,7 +16,7 @@ import os
 import random
 import time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .agent import solve
 from .baseline import solve_baseline
@@ -119,8 +119,14 @@ def run_eval(path: str, limit: int | None, sample: int | None = None,
                 break
             futures.append(pool.submit(_one, item))
 
-        for i, future in enumerate(futures, start=1):
+        # as_completed, not submission order: with N problems in flight, waiting
+        # on the first one means a long run prints nothing for many minutes and
+        # looks hung. Each line is numbered as it lands instead.
+        done = 0
+        for future in as_completed(futures):
             rec = future.result()
+            done += 1
+            i = done
             records.append(rec)
             stops[rec["stopped_reason"]] += 1
 
