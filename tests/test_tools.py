@@ -75,6 +75,7 @@ def test_scoring_mcq_multiple_partial_is_wrong():
 
 from langchain_core.messages import AIMessage
 from src.agent import solve
+from src.config import settings
 
 
 class _FakeChatModel:
@@ -155,7 +156,10 @@ def test_loop_detection_stops_repeated_calls():
     res = solve("stuck?", model=_FakeChatModel(same_calls))
     loop_stops = [t for t in res.trace if t["type"] == "loop_stop"]
     assert loop_stops, "expected loop detection to trigger"
-    assert res.steps_taken <= 8  # never runs away past the step cap
+    # Against the configured cap, not a hard-coded number: the cap is an env
+    # setting, and a machine with a different .env was failing this test for
+    # having a *higher* limit rather than for running away.
+    assert res.steps_taken <= settings.max_steps
 
 
 # ---- scoring: fixes for rounded gold answers and stray letters -------------
