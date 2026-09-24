@@ -52,11 +52,12 @@ _PREAMBLE = textwrap.dedent(
     """
     import math
     import sympy as sp
-    from sympy import (
-        symbols, solve, simplify, expand, factor, diff, integrate,
-        limit, Matrix, Rational, sqrt, sin, cos, tan, pi, oo, Eq, S,
-    )
+    # A narrow import list was the second-largest source of tool failures: the
+    # model reaches for exp, log, binomial or Abs and gets a NameError. SymPy's
+    # namespace is the vocabulary a maths model expects, so import all of it.
+    from sympy import *
     import numpy as np
+    x, y, z, n, k, t = sp.symbols("x y z n k t")
     """
 ).strip()
 
@@ -73,13 +74,41 @@ def _validate(code: str) -> str | None:
     return None
 
 
+def _auto_print(code: str) -> str:
+    """Echo the last line if it is a bare expression.
+
+    The single biggest tool failure was `[no output]`: the model computes the
+    answer, leaves it as the last expression and never prints it, so the agent
+    sees nothing and falls back to mental arithmetic. A REPL would have shown
+    that value, so this does too — without touching code that already prints."""
+    lines = code.rstrip().splitlines()
+    if not lines:
+        return code
+    last = lines[-1]
+    if last[:1] in (" ", "\t") or not last.strip():
+        return code                      # indented: inside a block, leave alone
+    stripped = last.strip()
+    if stripped.startswith(("print", "#", "import", "from", "def ", "class ",
+                            "return", "raise", "assert", "for ", "while ",
+                            "if ", "elif ", "else", "try", "except", "with ")):
+        return code
+    try:                                  # only rewrite a genuine expression
+        import ast as _ast
+        node = _ast.parse(stripped, mode="eval")
+        del node
+    except SyntaxError:
+        return code
+    lines[-1] = f"print({stripped})"
+    return "\n".join(lines)
+
+
 def run_python(code: str) -> str:
     """Execute `code` and return whatever it printed (or the error)."""
     refusal = _validate(code)
     if refusal:
         return refusal
 
-    full_source = _PREAMBLE + "\n\n" + code
+    full_source = _PREAMBLE + "\n\n" + _auto_print(code)
 
     # Run in a temp dir with a stripped environment: nothing inherited that a
     # snippet could read or leak, and PATH kept minimal so Python still starts.

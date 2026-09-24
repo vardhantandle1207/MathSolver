@@ -40,8 +40,15 @@ def test_python_repl_integral():
 def test_python_repl_reports_error():
     assert "[error]" in run_python("print(1/0)")
 
-def test_python_repl_reminds_to_print():
-    assert "print()" in run_python("1 + 1")
+def test_python_repl_echoes_bare_expression():
+    # Used to return a "did you forget print()?" reminder; a bare trailing
+    # expression is now echoed the way a REPL would, because that reminder
+    # accounted for 387 wasted tool calls in a single benchmark run.
+    assert run_python("1 + 1").strip() == "2"
+
+def test_python_repl_still_reminds_when_nothing_to_show():
+    # An assignment produces no value, so the reminder is still the right reply.
+    assert "print()" in run_python("a = 5")
 
 
 # ---- scoring --------------------------------------------------------------
@@ -335,3 +342,35 @@ def test_tuple_is_not_a_scalar():
 
 def test_parenthesised_scalar_still_parses():
     assert _to_number("(3+4)*2") == 14.0
+
+
+# ---- tool reliability fixes ------------------------------------------------
+# A 475-question run showed 56% of tool calls returning an error or nothing.
+# The agent then fell back to mental arithmetic, which is just the baseline.
+
+def test_bare_expression_is_printed():
+    # 387 calls returned "[no output]" because the model forgot print().
+    assert run_python("integrate(x**2,(x,0,3))").strip() == "9"
+
+def test_existing_print_not_double_wrapped():
+    assert run_python("print(2+2)").strip() == "4"
+
+def test_indented_block_left_alone():
+    assert run_python("total = 0\nfor i in range(4):\n    total += i\ntotal").strip() == "6"
+
+def test_wide_sympy_namespace():
+    # 168 NameErrors came from a narrow import list.
+    assert run_python("print(exp(0) + log(1) + binomial(5,2))").strip() == "11"
+
+def test_calculator_allows_maths_functions():
+    # 240 calls were refused for containing any function call at all.
+    assert calculate("log(16)/log(2)") == "4.0"
+    assert calculate("comb(10,3)") == "120"
+
+def test_calculator_still_blocks_arbitrary_calls():
+    assert "[error]" in calculate("__import__('os').system('ls')")
+    assert "[error]" in calculate("open('/etc/passwd')")
+    assert "[error]" in calculate("().__class__")
+
+def test_calculator_rejects_unknown_function():
+    assert "Unknown function" in calculate("sysexit(1)")
