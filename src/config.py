@@ -28,7 +28,7 @@ class Settings:
     temperature: float = float(os.getenv("TEMPERATURE", "0.0"))
 
     # Hard timeout (seconds) for any single code execution.
-    exec_timeout: int = int(os.getenv("EXEC_TIMEOUT", "10"))
+    exec_timeout: int = int(os.getenv("EXEC_TIMEOUT", "25"))
 
     # Retry transient LLM failures (rate limits, network blips) with backoff.
     max_retries: int = int(os.getenv("MAX_RETRIES", "3"))

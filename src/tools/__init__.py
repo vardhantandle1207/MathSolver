@@ -23,7 +23,8 @@ TOOL_SCHEMAS = [
                 "Execute Python code and return its printed output. SymPy (as sp / "
                 "solve, integrate, diff, Matrix, ...), NumPy (np) and math are already "
                 "imported. Use this for any real computation — solving equations, "
-                "integrals, derivatives, simplification. Remember to print() the result."
+                "integrals, derivatives, simplification. A bare expression on the "
+                "last line is printed automatically."
             ),
             "parameters": {
                 "type": "object",
