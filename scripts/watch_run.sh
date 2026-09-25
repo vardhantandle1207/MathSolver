@@ -2,10 +2,12 @@
 # Mirror the GPU-server run onto this machine and print a live summary.
 # The work happens remotely; this just makes it visible locally.
 #   bash scripts/watch_run.sh
-SERVER="${SERVER:-ai25mtech11004@192.168.209.81}"
-REMOTE_LOG="${REMOTE_LOG:-~/mathsolver/results/jeemains_14b.log}"
-LOCAL_LOG="${LOCAL_LOG:-results/jeemains_14b_live.log}"
-TOTAL="${TOTAL:-475}"
+# Override these for your own host/run:
+#   SERVER=user@host REMOTE_LOG=~/mathsolver/results/foo.log bash scripts/watch_run.sh
+SERVER="${SERVER:?set SERVER=user@host}"
+REMOTE_LOG="${REMOTE_LOG:-~/mathsolver/results/jeemains_150_fixed.log}"
+LOCAL_LOG="${LOCAL_LOG:-results/live.log}"
+TOTAL="${TOTAL:-150}"
 
 while true; do
   scp -q "$SERVER:$REMOTE_LOG" "$LOCAL_LOG" 2>/dev/null

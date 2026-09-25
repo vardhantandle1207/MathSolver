@@ -1,0 +1,71 @@
+[  1/50] combinatorics      base:OK (888030         ) agent:OK (888030         ) gold=888030
+[  2/50] integral           base:OK (21637          ) agent:OK (21637.0        ) gold=21637
+[  3/50] derivative         base:OK (1010           ) agent:OK (1010           ) gold=1010
+[  4/50] linear_system      base:OK (-1             ) agent:OK (-1             ) gold=-1
+[  5/50] determinant        base:  X(\[ \boxed{-5296) agent:OK (-2308          ) gold=-2308
+[  6/50] number_theory      base:  X(14             ) agent:OK (298            ) gold=298
+[  7/50] arithmetic         base:  X(476777         ) agent:  X(476501         ) gold=476877
+[  8/50] roots              base:OK (4.0000         ) agent:OK (4.0000         ) gold=4.0000
+[  9/50] matrices           base:OK (91             ) agent:  X(4              ) gold=91
+[ 10/50] modular            base:OK (81             ) agent:OK (81             ) gold=81
+[ 11/50] integral           base:  X(5714           ) agent:OK (5814.0         ) gold=5814
+[ 12/50] determinant        base:  X(836            ) agent:OK (-64            ) gold=-64
+[ 13/50] derivative         base:OK (405            ) agent:OK (405            ) gold=405
+[ 14/50] combinatorics      base:OK (37442160       ) agent:OK (37442160       ) gold=37442160
+[ 15/50] number_theory      base:  X(72             ) agent:OK (1272           ) gold=1272
+[ 16/50] roots              base:OK (0.5000         ) agent:OK (0.5000         ) gold=0.5000
+[ 17/50] linear_system      base:OK (5              ) agent:OK (5              ) gold=5
+[ 18/50] arithmetic         base:  X(617017         ) agent:  X(619323         ) gold=617257
+[ 19/50] modular            base:  X(\]             ) agent:OK ((final_answer(a) gold=9023
+[ 20/50] matrices           base:OK (133            ) agent:  X(-26.0          ) gold=133
+[ 21/50] integral           base:  X(14824          ) agent:OK (15824.0        ) gold=15824
+[ 22/50] combinatorics      base:  X(27540          ) agent:OK (27132          ) gold=27132
+[ 23/50] derivative         base:OK (32             ) agent:OK (32             ) gold=32
+[ 24/50] determinant        base:  X(252            ) agent:OK (-2184          ) gold=-2184
+[ 25/50] linear_system      base:OK (12             ) agent:OK (12             ) gold=12
+[ 26/50] number_theory      base:  X(1              ) agent:OK (71             ) gold=71
+[ 27/50] roots              base:OK (5.0000         ) agent:OK (5.0000         ) gold=5.0000
+[ 28/50] arithmetic         base:  X(273329         ) agent:OK (272489         ) gold=272489
+[ 29/50] modular            base:  X(636            ) agent:OK (830            ) gold=830
+[ 30/50] matrices           base:OK (-25            ) agent:OK (-25            ) gold=-25
+[ 31/50] integral           base:OK (435785/12      ) agent:OK (36315.4167     ) gold=435785/12
+[ 32/50] determinant        base:  X(\]             ) agent:OK (-2714          ) gold=-2714
+[ 33/50] combinatorics      base:  X(293725         ) agent:OK (293930         ) gold=293930
+[ 34/50] derivative         base:OK (228            ) agent:OK (228            ) gold=228
+[ 35/50] linear_system      base:OK (\[ \boxed{-5} \) agent:OK (-5.0           ) gold=-5
+[ 36/50] roots              base:OK (2.3077         ) agent:OK (2.3077         ) gold=2.3077
+[ 37/50] number_theory      base:  X(72             ) agent:OK (168            ) gold=168
+[ 38/50] arithmetic         base:OK (200197         ) agent:  X(204181         ) gold=200197
+[ 39/50] matrices           base:OK (-73            ) agent:  X(-16            ) gold=-73
+[ 40/50] integral           base:OK (432.67         ) agent:  X(284.0          ) gold=1298/3
+[ 41/50] modular            base:  X(\]             ) agent:OK (3784           ) gold=3784
+[ 42/50] combinatorics      base:OK (77520          ) agent:OK (77520          ) gold=77520
+[ 43/50] determinant        base:  X(\[ \boxed{-6840) agent:OK (-9825          ) gold=-9825
+[ 44/50] derivative         base:OK (11             ) agent:OK (11             ) gold=11
+[ 45/50] linear_system      base:OK (\[ \boxed{8} \]) agent:OK (8              ) gold=8
+[ 46/50] number_theory      base:  X(2              ) agent:OK (434            ) gold=434
+[ 47/50] roots              base:OK (-5.4286        ) agent:OK (-5.4286        ) gold=-5.4286
+[ 48/50] modular            base:  X(\[ \boxed{8281}) agent:OK (7674           ) gold=7674
+[ 49/50] arithmetic         base:OK (69220          ) agent:OK (69220          ) gold=69220
+[ 50/50] matrices           base:OK (147            ) agent:OK (147            ) gold=147
+
+============================================================
+Baseline (LLM only): 58.0%  (29/50)
+Agent (with tools) : 86.0%  (43/50)
+------------------------------------------------------------
+topic           baseline     agent     n
+arithmetic         40.0%     40.0%     5
+combinatorics      60.0%    100.0%     5
+derivative        100.0%    100.0%     5
+determinant         0.0%    100.0%     5
+integral           60.0%     80.0%     5
+linear_system     100.0%    100.0%     5
+matrices          100.0%     40.0%     5
+modular            20.0%    100.0%     5
+number_theory       0.0%    100.0%     5
+roots             100.0%    100.0%     5
+------------------------------------------------------------
+agent stop reasons: {'final_answer': 49, 'no_final_answer_call': 1}
+============================================================
+wrote 50 records -> results/calcbench_14b.json
+Done in 728.1s

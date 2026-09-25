@@ -4,9 +4,11 @@ __pycache__/
 .env
 .pytest_cache/
 .DS_Store
-results/
-# ...except the two logs the README's tables are computed from
-!results/
+
+# Result files are large and machine-specific; only the two runs the README's
+# tables are computed from are tracked, so anyone can check the numbers.
 results/*
-!results/calcbench_50.log
-!results/jeemains_run.log
+!results/calcbench_14b.log
+!results/calcbench_14b.json
+!results/jeemains_150_fixed.log
+!results/jeemains_150_fixed.json

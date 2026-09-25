@@ -1,39 +1,48 @@
 # 🧮 MathSolver-Agent
 
-A **LangGraph** tool-using agent that solves JEE-level mathematics — and
-**quantifies how much the tools actually help**, across three benchmarks.
+A **LangGraph** tool-using agent that solves JEE-level mathematics — and measures
+**how much the tools actually help**, against the same model with no tools.
 
-A raw LLM is confident but sloppy at multi-step math: it "knows" the method but
-fumbles the algebra. This project wraps a small/free LLM in a **ReAct agent**
-(built as an explicit LangGraph `StateGraph`) that offloads every real
-computation to **SymPy**, verifies its own results, and reports its accuracy
-against a plain-LLM baseline.
+A language model is confident but unreliable at multi-step arithmetic: it knows
+the method and fumbles the algebra. This project wraps one in a **ReAct agent**
+(an explicit LangGraph `StateGraph`) that hands every calculation to **SymPy**,
+and then tests whether that helps — on generated computation-heavy problems and
+on real JEE Main 2025 questions.
 
-The headline artefact isn't "it solves math" — it's the **baseline → agent
-accuracy delta**, measured per question type. It is not a uniform win:
-**46 % → 98 %** on computation-heavy problems, and a *loss* on real JEE Main
-questions where planning, not arithmetic, is the bottleneck. See
-[Results](#results).
+**The headline is not an accuracy number, it's a boundary:**
+
+| Benchmark | Baseline | Agent | Gain | significance |
+|---|---:|---:|---:|---|
+| **CalcBench** — computation-heavy, n=50 | 58.0 % | **86.0 %** | **+28.0** | p = 0.007 |
+| **JEE Main 2025** — real exam, n=150 | 37.3 % | 41.3 % | +4.0 | p = 0.48 (not significant) |
+
+Tools produce a large, statistically solid gain where the bottleneck is
+*computation*, and no measurable gain where the bottleneck is *choosing a
+method*. Both results come from the same model, the same grader and the same
+code — only the tools differ. Details, including why the JEE Main result is
+reported as a null, are in [Results](#results).
+
+Model: `qwen2.5:14b-instruct` via Ollama, on one RTX A5000.
 
 ---
 
 ## What it does
 
 - Takes a maths problem in plain English.
-- Runs a LangGraph **reason → act → observe** loop: the model plans, writes SymPy
-  code, sees the result, and either continues or commits an answer.
+- Runs a LangGraph **reason → act → observe** loop: the model plans, writes
+  SymPy, sees the result, and either continues or commits an answer.
 - Remembers a conversation when given a `thread_id`, so follow-ups work.
-- Grades itself with numeric-tolerance + MCQ-aware scoring (including
-  multiple-correct questions).
+- Grades itself with a SymPy-backed grader that evaluates LaTeX, fractions and
+  surds rather than pattern-matching them.
 - Ships a Streamlit UI that exposes the **full reasoning trace** — every tool
   call and what it returned.
 
 ## Architecture
 
-Built as a custom LangGraph `StateGraph` with two nodes I wrote myself, rather
-than the prebuilt `create_react_agent` — that's what lets me keep a readable
-trace, intercept a `final_answer` tool for a clean stop condition, and enforce a
-step cap.
+A custom `StateGraph` with three nodes, rather than the prebuilt
+`create_react_agent` — that is what makes the trace readable, lets a
+`final_answer` tool serve as the stop condition, and leaves room for real
+safety limits.
 
 ```
                     ┌──────────────── LangGraph StateGraph ────────────────┐
@@ -41,59 +50,65 @@ step cap.
                     │   ┌───────┐   has tool calls   ┌───────┐             │
                     │   │ agent │ ─────────────────▶ │ tools │             │
                     │   └───────┘                    └───────┘             │
-                    │       ▲  │ no tool calls           │                 │
-                    │       │  └──────────▶ END          │ final_answer    │
-                    │       │                            │ or step cap ─▶ END
-                    │       └────────── loop back ───────┘                 │
+                    │     ▲   │ answered in prose        │                 │
+                    │     │   └──────▶ ┌───────┐         │ final_answer    │
+                    │     │            │ nudge │         │ or a limit ─▶ END
+                    │     │            └───────┘         │                 │
+                    │     └────────── loop back ─────────┘                 │
                     └──────────────────────────────────────────────────────┘
-                        agent = ask the model (tools bound)
-                        tools = run SymPy / calculator, feed observations back
+        agent = ask the model (tools bound)
+        tools = run SymPy / calculator, feed observations back
+        nudge = the model narrated an answer instead of submitting one; re-ask
 ```
 
-Three design choices worth calling out:
+Four design choices worth explaining:
 
-1. **Custom StateGraph, not the prebuilt agent.** The nodes, routing, and state
-   are all explicit in `agent.py` (~90 lines) — I can walk through exactly how a
-   step is taken and why the loop terminates.
-2. **`final_answer` as a tool.** Instead of guessing when the model is "done"
-   from its prose, the model submits its answer via an explicit tool call — an
+1. **Custom StateGraph, not the prebuilt agent.** Nodes, routing and state are
+   explicit in `agent.py`, so every step and every exit path is inspectable.
+2. **`final_answer` as a tool.** Rather than guessing when the model is done
+   from its prose, the model submits through an explicit tool call — an
    unambiguous stop condition the router keys off.
-
-3. **Memory is the graph's, not mine.** Pass a `thread_id` to `solve()` and the
-   graph is compiled with a LangGraph checkpointer, so the thread's messages are
-   restored on the next call and follow-ups ("now do the same for x³") work. The
-   per-question counters (steps, tokens, trace) are reset on each call — only the
-   message history accumulates. No `thread_id` means a clean one-shot solve,
-   which is what the eval harness wants.
+3. **A nudge node.** Small models often narrate the answer and forget to submit
+   it. Instead of scraping a number out of a sentence, the graph re-asks once.
+   (Scraping is worse than it sounds: the first number in `x^2 = 4` is 2.)
+4. **Memory is the graph's, not mine.** Pass a `thread_id` and the graph is
+   compiled with a LangGraph checkpointer, so the thread's messages return on
+   the next call. Per-question counters reset each call; only messages
+   accumulate. No `thread_id` means a clean one-shot solve, which is what the
+   eval harness wants.
 
 ## Project structure
 
 ```
 mathsolver-agent/
 ├── app.py                     # Streamlit demo (shows the reasoning trace)
-├── requirements.txt
-├── .env.example
 ├── data/
-│   ├── sample_problems.json   # 10 verified problems (quick smoke set)
 │   ├── make_calcbench.py      # generates the computation-heavy set (SymPy gold)
-│   └── load_jeemains.py       # pulls 475 real JEE Main 2025 questions
+│   ├── load_jeemains.py       # pulls 475 real JEE Main 2025 questions
+│   └── sample_problems.json   # 10 problems for a quick smoke run
 ├── src/
-│   ├── config.py              # model + agent knobs (env-driven)
-│   ├── llm.py                 # chat-model factory (Ollama)
-│   ├── prompts.py             # system prompts
+│   ├── agent.py               # the StateGraph: agent / tools / nudge + routing
+│   ├── baseline.py            # same model, no tools (the control)
 │   ├── tools/
 │   │   ├── python_repl.py     # sandboxed subprocess exec w/ timeout
-│   │   ├── calculator.py      # AST-restricted safe arithmetic
+│   │   ├── calculator.py      # AST-allowlisted arithmetic + maths functions
 │   │   └── __init__.py        # tool schemas + dispatch registry
-│   ├── agent.py               # the LangGraph StateGraph + ReAct loop
-│   ├── baseline.py            # LLM-only solver (the control)
-│   ├── scoring.py             # numeric-tolerance + MCQ grader
-│   └── evaluate.py            # baseline-vs-agent harness + per-type table
-└── tests/
-    └── test_tools.py          # offline tests incl. a full-loop test (fake model)
+│   ├── scoring.py             # SymPy-backed grader (LaTeX, surds, MCQ, tolerance)
+│   ├── evaluate.py            # baseline-vs-agent harness, concurrent, resumable
+│   ├── analyse.py             # sorts failures into plumbing vs wrong maths
+│   ├── replay_tools.py        # re-runs recorded tool calls against new tools
+│   ├── config.py              # model + agent knobs (env-driven)
+│   ├── llm.py                 # chat-model factory
+│   └── prompts.py             # system prompts
+├── scripts/
+│   ├── setup_gpu_server.sh    # one-shot setup on a no-sudo GPU box
+│   ├── probe_server.sh        # read-only survey of an unfamiliar machine
+│   └── watch_run.sh           # mirror a remote run and show live progress
+├── results/                   # the two runs the tables above are computed from
+└── tests/test_tools.py        # 60 tests, no network and no model required
 ```
 
-## Setup (all free, runs locally)
+## Setup
 
 ```bash
 git clone https://github.com/vardhantandle1207/MathSolver.git && cd MathSolver
@@ -106,10 +121,23 @@ The model runs locally through **Ollama** — no API key, no rate limits:
 
 ```bash
 # install from https://ollama.com, then:
-ollama pull qwen2.5:7b-instruct
+ollama pull qwen2.5:14b-instruct
 ```
 
 Any tool-calling Ollama model works; set `OLLAMA_MODEL` in `.env` to switch.
+A 14B model needs roughly 10 GB of VRAM.
+
+**On a shared GPU server** (no sudo, old Python, old driver), one script handles
+it:
+
+```bash
+GPU=0 bash scripts/setup_gpu_server.sh
+```
+
+It installs Ollama and Python 3.12 under `$HOME`, pins one GPU, writes `.env`,
+pulls the model and runs the tests. Nothing is installed system-wide. See
+[Running on a shared GPU box](#running-on-a-shared-gpu-box) for the two traps
+that cost me hours.
 
 ## Usage
 
@@ -130,171 +158,232 @@ solve("Evaluate the integral of x^2 from 0 to 3.", thread_id="chat-1")
 solve("Now do the same for x^3 from 0 to 4.",      thread_id="chat-1")
 ```
 
-**Reproduce the benchmark numbers**
+**Reproduce the numbers**
 ```bash
 # computation-heavy set (generated, exact SymPy answers)
 python -m data.make_calcbench
-python -m src.evaluate --data data/calcbench.json
+python -m src.evaluate --data data/calcbench.json --workers 4 \
+    --out results/calcbench_14b.json
 
-# real JEE Main 2025 questions, stratified sample, with a wall-clock budget
+# real JEE Main 2025 questions, stratified sample
 python -m data.load_jeemains
-python -m src.evaluate --data data/jeemains_math.json --sample 50 --max-minutes 120
+python -m src.evaluate --data data/jeemains_math.json --sample 150 \
+    --workers 4 --out results/jeemains_150_fixed.json
 ```
 
 `--sample` draws proportionally per question type with a fixed seed (a plain
-head-slice misses whole types); `--max-minutes` stops cleanly and still reports.
+head-slice misses whole types); `--workers` solves several problems at once;
+`--max-minutes` stops cleanly and still reports; `--out` saves every prediction
+and trace, streaming to `.jsonl` as it goes so a killed run keeps its results.
 
-**Quick smoke run on the bundled set**
+**Analyse and re-measure**
 ```bash
-python -m src.evaluate --data data/sample_problems.json
+python -m src.analyse results/jeemains_150_fixed.json          # failure buckets
+python -m src.analyse results/jeemains_150_fixed.json --show unevaluated
+python -m src.replay_tools results/jeemains_150_fixed.json     # tool health
 ```
 
-**Tests** (no API key needed — includes a full-loop test with a fake model)
+**Tests** (no API key, no model, no network)
 ```bash
 pytest -q
 ```
 
 ## Results
 
-Model: `qwen2.5:7b-instruct` running locally via Ollama. Baseline and agent use
-the same model, the same grader and the same problems — the only difference is
-whether the tools are available.
-
-**The short version: tools help enormously when the bottleneck is computation,
-and they hurt when the bottleneck is reasoning.** Both results are below.
+Both benchmarks use `qwen2.5:14b-instruct`, the same grader and the same
+problems for each arm. The only difference between baseline and agent is whether
+the tools exist. Significance is **McNemar's exact test** on the paired
+outcomes, which is the right test here because both systems answer the same
+questions.
 
 ### CalcBench — computation-heavy (n = 50, generated, seed 7)
 
 | Setup                | Accuracy  |
 |----------------------|:---------:|
-| Baseline (LLM only)  |   46 %    |
-| **Agent (w/ tools)** | **98 %**  |
+| Baseline (LLM only)  |  58.0 %   |
+| **Agent (w/ tools)** | **86.0 %** |
+
+19 questions only the agent got right, 5 only the baseline — **p = 0.0066**.
 
 | Topic         | Baseline | Agent |     | Topic         | Baseline | Agent |
 |---------------|:--------:|:-----:|-----|---------------|:--------:|:-----:|
-| determinant   |    0 %   | 100 % |     | integral      |   40 %   | 100 % |
-| linear system |   20 %   | 100 % |     | combinatorics |   40 %   | 100 % |
-| modular arith |   20 %   | 100 % |     | arithmetic    |   60 %   | 100 % |
-| number theory |    0 %   |  80 % |     | derivative    |   80 %   | 100 % |
-| matrices      |  100 %   | 100 % |     | roots         |  100 %   | 100 % |
+| determinant   |    0 %   | 100 % |     | integral      |   60 %   |  80 % |
+| number theory |    0 %   | 100 % |     | arithmetic    |   40 %   |  40 % |
+| modular arith |   20 %   | 100 % |     | derivative    |  100 %   | 100 % |
+| combinatorics |   60 %   | 100 % |     | linear system |  100 %   | 100 % |
+| roots         |  100 %   | 100 % |     | matrices      |  100 %   |  40 % |
 
-The baseline scores **0 % on 4x4 determinants** and 20 % on 3x3 systems: it
-knows the method and fumbles the arithmetic, which is exactly the failure the
-tool layer removes. Where the numbers are small (matrices, Vieta's) both score
+The baseline scores **0 % on 4×4 determinants** and 20 % on modular arithmetic:
+it knows the method and fumbles the numbers, which is exactly what the tool
+layer removes. Where the numbers are small (Vieta's, small matrices) both are at
 100 % and the tools add nothing — as they should.
 
-<sub>Honest footnote: the raw run scored 48 % / 88 %, with the agent at 0/5 on
-derivatives. That was not a maths failure — with tools bound, `qwen2.5:7b`
-returns a *completely empty* response to "Find f'(3)" on a quartic, while the
-same question as "the derivative of f at x = 3" works every time. After
-rephrasing, a re-run of those 5 gave agent 5/5 and baseline 4/5; the table above
-substitutes them. Raw log: `results/calcbench_50.log`.</sub>
+One honest anomaly: the agent scores **40 % on matrices where the baseline gets
+100 %**. Five problems, so it is two questions' worth of difference, but it is a
+real regression and not noise-free — the records are in `results/` and it is the
+first thing I would dig into next.
 
-### JEE Main 2025 — a real exam (n = 27, stratified sample)
+### JEE Main 2025 — a real exam (n = 150, stratified sample of 475)
 
 | Setup                | Accuracy  |
 |----------------------|:---------:|
-| Baseline (LLM only)  |  44.4 %   |
-| **Agent (w/ tools)** |  29.6 %   |
+| Baseline (LLM only)  |  37.3 %   |
+| Agent (w/ tools)     |  41.3 %   |
 
-| Type            | Baseline | Agent | n  |
-|-----------------|:--------:|:-----:|:--:|
-| MCQ             |  57.9 %  | 42.1 %| 19 |
-| Numeric         |  12.5 %  |  0.0 %|  8 |
+| Type            | Baseline | Agent |  n  |
+|-----------------|:--------:|:-----:|:---:|
+| MCQ             |  41.7 %  | 46.7 %| 120 |
+| Numeric         |  20.0 %  | 20.0 %|  30 |
 
-**The agent loses here, and that is the more interesting result.** JEE Main
-questions need a multi-step plan before any arithmetic happens. The tool layer
-fixes computation, not planning — and it adds a failure mode: the model has to
-translate its plan into correct SymPy, and a subtly wrong translation produces a
-confidently wrong number. The baseline, reasoning in prose, keeps more of the
-problem in view. 5 of 27 agent runs also hit the step cap without answering.
+**This +4 points is not statistically significant.** 28 questions only the agent
+got, 22 only the baseline; McNemar gives **p = 0.48**, meaning a gap this size
+arises by chance about half the time. The honest reading is that on real exam
+questions the tool layer is **not measurably better than no tools** — not that
+it is 4 points better.
 
-Two caveats I'd rather state than bury:
+Why? The failure analysis answers it directly:
 
-- **n = 27 is small** (a wall-clock budget cut the run short), so treat the gap
-  as directional, not precise.
-- **The MCQ split slightly favours the baseline.** It answers in prose, and the
-  grader takes the last option letter it finds, which occasionally lands on the
-  right one by luck. The numeric split (12.5 % vs 0 %) has no such escape hatch
-  and shows the same direction.
+```
+$ python -m src.analyse results/jeemains_150_fixed.json
+agent failures: 88
+  wrong_maths        64   72.7%      <- clean, well-formed, wrong answers
+  no_submission       7    8.0%
+  tool_error          6    6.8%
+  no_tool_use         6    6.8%
+  unmatched_value     4    4.5%
+  unevaluated         1    1.1%
+24/88 failures are plumbing, not mathematics (27%)
+Ceiling if every plumbing failure were fixed: 57.3%
+```
 
-### Why only two sets
+**73 % of the agent's failures are clean but wrong answers** — it picked the
+wrong method, then executed it perfectly. A tool cannot fix a wrong plan. On
+CalcBench, by contrast, **100 %** of the few remaining failures are wrong maths
+too, but there the method was never the hard part, so tools had room to help.
 
-A third, harder set (JEE Advanced) was tried and dropped: a 7B model solves
-almost nothing on it with or without tools, so the comparison measures noise
-rather than the tool layer. Ruling a benchmark out is part of the work.
+### The tool layer was broken, and fixing it did not move accuracy
 
-### What this actually shows
+The first JEE Main run exposed something worth reporting: of 1,893 tool calls,
+**1,051 (56 %) returned an error or nothing.** A failed tool call means the agent
+falls back to mental arithmetic — at which point it *is* the baseline.
 
-Tool-augmentation is not a uniform win. It is a large win (+52 points) exactly
-where the model's arithmetic is the weak link, and a net loss where the model's
-*planning* is the weak link and SymPy translation becomes one more thing to get
-wrong. A bigger base model would likely narrow the second gap; that is the
-obvious next experiment.
+| Cause | count | fix |
+|---|---:|---|
+| `[no output]` — model never called `print()` | 387 | echo a bare trailing expression, as a REPL does |
+| calculator refused every function call | 240 | allowlist named maths functions |
+| `NameError` on `exp`, `log`, `binomial` … | 168 | import SymPy's full namespace |
+| `SyntaxError` | 81 | the model's own fault |
+
+`src/replay_tools.py` re-runs recorded calls against the current tools, so a
+tool fix is measurable in minutes instead of GPU-hours:
+
+```
+$ python -m src.replay_tools <old run>
+TOTAL FAILING   1051 -> 572
+failure rate     56% -> 30%
+```
+
+**And yet accuracy barely moved.** Re-running the same 150 questions with the
+repaired tools: 26 answers became correct, 22 became wrong (p = 0.67), with the
+tool failure rate down from 53 % to 31 %. That is a genuine negative result:
+**tool reliability was not the binding constraint on this benchmark.** It is
+also the strongest evidence for the conclusion above — we halved tool failures
+and the exam score stayed put, because the exam is bottlenecked on reasoning.
+
+### Cost
+
+| | median time | tokens per agent run |
+|---|---:|---:|
+| CalcBench | 53 s | 2,131 |
+| JEE Main | 161 s | 6,366 |
+
+The agent is several times more expensive than the baseline. On CalcBench that
+buys 28 points. On JEE Main it buys nothing measurable — worth stating plainly,
+because "add tools" is not free.
 
 ## Safety & reliability
 
-These are the "what happens when it goes wrong" concerns, handled explicitly
-rather than left to chance:
-
-**Error handling**
-- Tool crash → caught and returned to the model as a readable `[error]` string,
-  so it can self-correct on the next step (implicit retry via re-prompting).
-- Bad tool arguments (wrong key from the model) → caught, named, fed back.
-- Transient LLM failure (rate limit / network) → retried with exponential
-  backoff via LangChain's `.with_retry()` (`MAX_RETRIES`), instead of crashing.
-
-**Termination guarantees** (an agent that can't stop is a liability)
-- `max_steps` — hard iteration cap on the loop.
-- `max_tokens_budget` — cumulative-token cost cap; the run stops when exceeded.
+**Termination** (an agent that cannot stop is a liability)
+- `max_steps` — hard iteration cap.
+- `max_tokens_budget` — cumulative-token cost cap.
 - **Loop detection** — an identical `(tool, args)` call is refused after
   `max_repeats` tries and the model is told to change approach.
-- LangGraph `recursion_limit` — a final backstop below the framework default.
-- Every stop path sets an explicit `stopped_reason` (`final_answer`,
-  `step_limit`, `token_budget`, `input_too_long`, …) so failures are legible.
+- `max_nudges` — how many times the agent is re-asked to submit properly.
+- Every exit path sets an explicit `stopped_reason` (`final_answer`,
+  `step_limit`, `token_budget`, `no_final_answer_call`, `llm_error`, …), so the
+  eval can report *why* runs ended, not just that they did.
 
-**Security** (honest about the tier this is at)
-- Input validation: problem text is length-checked; the calculator tool is
-  AST-allowlisted (only arithmetic nodes execute).
-- The code denylist covers both import spellings (`import os` *and*
-  `from os import ...`) plus dunder traversal (`__class__` / `__subclasses__`),
-  which is how a sandbox escape usually starts.
-- Sandboxed execution: the Python tool runs in an isolated subprocess (`python -I`)
-  with a hard timeout, a stripped environment, and a temp working dir.
-- Static denylist: code touching the OS, filesystem, network, or `eval`/`exec`
-  is refused before it runs.
-- **This is defense-in-depth, not a true jail.** A denylist is bypassable; for
-  untrusted internet input you'd want gVisor / Firejail / a container with
-  seccomp. Access control (auth, per-user rate limits) is out of scope for a
-  local demo and would be the first add for a hosted deployment.
+**Error handling**
+- A tool crash is caught and returned to the model as a readable `[error]`
+  string, so it can self-correct next step.
+- A provider failure that survives retries becomes one scored miss with
+  `stopped_reason="llm_error"`, so one bad response cannot abort a long run.
+- The harness **aborts after 3 consecutive LLM failures**. A dead connection
+  otherwise produces a full run of zeros, which looks like a result and measures
+  nothing. (This happened; hence the guard.)
+
+**Security**
+- The Python tool runs in an isolated subprocess (`python -I`) with a hard
+  timeout, a stripped environment and a temp working directory.
+- A static denylist refuses OS/filesystem/network access, both import spellings
+  (`import os` and `from os import …`) and dunder traversal (`__subclasses__`).
+- The calculator is AST-allowlisted: only arithmetic nodes and named functions
+  from one dict execute, so nothing else can be called.
+- **This is defence in depth, not a jail.** A denylist is bypassable. For
+  untrusted input you would want gVisor, Firejail or a seccomp container.
 
 ## How scoring works
 
-Math grading is fiddly (`0.5` vs `1/2` vs `x = 0.5`; `B` vs `(B)`; multi-answer
-`AD` vs `A and D`). `scoring.py` normalises both sides, compares numbers within a
-tolerance, matches MCQ letters, and treats multiple-correct answers as sets.
+Grading maths output is where a benchmark quietly goes wrong. Four details that
+decide whether the numbers mean anything:
 
-Two details that decide whether the numbers mean anything:
+- **Expressions are evaluated, not pattern-matched.** `\frac{47}{3}` is 15.67,
+  not 473, and `10*sqrt(5)` is 22.36, not 10. An earlier regex version read the
+  digits out of LaTeX and matched every fraction option against nonsense.
+- **Tolerance follows the gold answer's precision.** Keys round to 2 decimals
+  but SymPy does not, so the tolerance is half a unit in the gold's last decimal
+  place rather than a fixed epsilon.
+- **A bare value counts as the option it equals.** A model that computes 441 and
+  submits the number rather than `A` has done the mathematics; marking that wrong
+  measures formatting. Applied identically to both arms.
+- **Option letters are matched case-sensitively, and tuples are not scalars.**
+  Upper-casing turns `a`, `bad` and `cab` into options; reading `(7/12, 4/3, 1/4)`
+  as `7.0` would score a coordinate triple as a correct number.
 
-- **Tolerance follows the gold answer's precision.** Answer keys round to 2
-  decimals but SymPy doesn't, so a fixed `1e-3` would mark a correct `0.3333`
-  wrong against a gold of `0.33`. The tolerance is half a unit in the gold's last
-  decimal place instead.
-- **Option letters are matched case-sensitively.** Upper-casing the text first
-  turns ordinary words (`a`, `bad`, `cab`) into options — which would penalise
-  the prose-heavy baseline and inflate the agent's apparent lead.
+## Running on a shared GPU box
+
+Two traps, both of which cost hours and neither of which announces itself:
+
+- **Ollama ≥ 0.13 requires NVIDIA driver 550+.** On an older driver it does not
+  fail — it silently falls back to a Vulkan backend that segfaults. The setup
+  script pins v0.12.11 (CUDA 12.2) and prints the selected backend, because
+  "Vulkan instead of CUDA" otherwise looks like "working, just slow".
+- **More concurrency is faster only while it fits in VRAM.** Eight slots on a
+  24 GB card hit `cudaMalloc: out of memory`; the runner then died and reloaded
+  an 8 GB model in a loop, and throughput fell from 63 problems/hour to 12. Four
+  slots was the right answer.
+
+Everything the script installs lives under `$HOME`, and one GPU is pinned with
+`CUDA_VISIBLE_DEVICES` so the rest of a shared machine stays free.
 
 ## Limitations & honest notes
 
-- Bounded by the base model's reasoning — tools fix *computation*, not a wrong
-  plan. This is measured, not assumed: see the JEE Main result above, where the
-  agent loses to the plain model on problems that need a plan first.
-- The Python sandbox is subprocess + timeout, not a hardened jail. Fine for a
-  trusted local demo; don't expose it to arbitrary internet input as-is.
-- Multiple-correct MCQs are the hardest bucket (partial credit isn't given).
-- Results come from one 7B model. A larger model would likely narrow the JEE
-  Main gap; that's the obvious next experiment, not a finished conclusion.
+- **The JEE Main result is a null, not a win.** n=150, p=0.48. A larger sample
+  would tighten the interval; it would not turn +4 points into a finding.
+- **Bounded by the base model's reasoning.** Tools fix computation, not a wrong
+  plan — measured, not assumed: 73 % of agent failures are clean wrong answers,
+  and repairing the tool layer did not move the score.
+- **One model, one seed.** Everything here is `qwen2.5:14b-instruct` at
+  temperature 0. A stronger model would plausibly change the JEE Main picture,
+  and that is the obvious next experiment.
+- **CalcBench is my own generator.** Gold answers are exact by construction
+  (SymPy computes them), which removes key errors but not the fact that I chose
+  the problem types. It is a diagnostic, not a public benchmark — which is why
+  the real exam is reported alongside it.
+- **The matrices regression on CalcBench is unexplained** (agent 40 % vs
+  baseline 100 %, n=5). Flagged rather than smoothed over.
+- The sandbox is subprocess + timeout, not a hardened jail.
 
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE).
